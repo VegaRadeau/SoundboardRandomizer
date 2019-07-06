@@ -38,7 +38,7 @@ namespace SoundboardRandomizer
         public struct SoundboardPlaylist
         {
             public List<string> playlist { get; set; }
-            public int lastPlayedIdx { get; set; }
+            public List<int> lastPlayedIdxList { get; set; }
             public int hotkey { get; set; }
         }
 
@@ -107,7 +107,8 @@ namespace SoundboardRandomizer
                     newSoundboard.playlist.AddRange(System.IO.Directory.GetFiles(dir, "*.wav"));
 
                     // initialize last played to zero
-                    newSoundboard.lastPlayedIdx = 0;
+                    newSoundboard.lastPlayedIdxList = new List<int>();
+                    newSoundboard.lastPlayedIdxList.Add(0);
                     
                     // set hotkey enum
                     newSoundboard.hotkey = Int32.Parse(localDirSplit[1]);
@@ -162,16 +163,31 @@ namespace SoundboardRandomizer
                 System.Windows.Forms.Keys playlistHotkey = (System.Windows.Forms.Keys)mSoundboards[i].hotkey;
                 if (e.KeyCode == playlistHotkey)
                 {
-                    
 
-                    int randomIdx = mSoundboards[i].lastPlayedIdx;
+                    int randomIdx = mSoundboards[i].lastPlayedIdxList[0];
 
                     if (mSoundboards[i].playlist.Count > 1)
                     {
                         Random r = new Random();
 
-                        while (randomIdx == mSoundboards[i].lastPlayedIdx)
+                        while (mSoundboards[i].lastPlayedIdxList.Contains(randomIdx))
                             randomIdx = r.Next(0, mSoundboards[i].playlist.Count);
+
+                        if (mSoundboards[i].playlist.Count >= 4)
+                        {
+                            // leave 2 out to choose from next time so it's not cyclic
+                            if (mSoundboards[i].lastPlayedIdxList.Count == (mSoundboards[i].playlist.Count - 2))
+                            {
+                                List<int> tempList = new List<int>();
+                                tempList = mSoundboards[i].lastPlayedIdxList.GetRange(1, (mSoundboards[i].lastPlayedIdxList.Count - 1));
+                                mSoundboards[i].lastPlayedIdxList.Clear();
+                                mSoundboards[i].lastPlayedIdxList.AddRange(tempList);
+                            }
+
+                            mSoundboards[i].lastPlayedIdxList.Add(randomIdx);
+                        }
+                        else
+                            mSoundboards[i].lastPlayedIdxList[0] = randomIdx;
                     }
 
                     mediaElement1.LoadedBehavior = MediaState.Manual;
@@ -183,7 +199,7 @@ namespace SoundboardRandomizer
                     {
                         playlist = mSoundboards[i].playlist,
                         hotkey = mSoundboards[i].hotkey,
-                        lastPlayedIdx = randomIdx
+                        lastPlayedIdxList = mSoundboards[i].lastPlayedIdxList
                     };
 
                     mSoundboards[i] = newSoundboard;
