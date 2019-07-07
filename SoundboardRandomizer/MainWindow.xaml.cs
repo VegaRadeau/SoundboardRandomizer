@@ -30,6 +30,10 @@ namespace SoundboardRandomizer
 
         private GlobalKeyboardHook gKeyboardHook = new GlobalKeyboardHook();
 
+        // 1 < gHistForget <= gMinFileHistCount - 2
+        private int gMinFileHistCount = 7;
+        private int gHistForget = 5;
+
         private bool muted = false;
 
         private int stopKey = 0;
@@ -173,10 +177,10 @@ namespace SoundboardRandomizer
                         while (mSoundboards[i].lastPlayedIdxList.Contains(randomIdx))
                             randomIdx = r.Next(0, mSoundboards[i].playlist.Count);
 
-                        if (mSoundboards[i].playlist.Count >= 4)
+                        if (mSoundboards[i].playlist.Count >= gMinFileHistCount)
                         {
                             // leave 2 out to choose from next time so it's not cyclic
-                            if (mSoundboards[i].lastPlayedIdxList.Count == (mSoundboards[i].playlist.Count - 2))
+                            if (mSoundboards[i].lastPlayedIdxList.Count == (mSoundboards[i].playlist.Count - gHistForget))
                             {
                                 List<int> tempList = new List<int>();
                                 tempList = mSoundboards[i].lastPlayedIdxList.GetRange(1, (mSoundboards[i].lastPlayedIdxList.Count - 1));
