@@ -26,13 +26,18 @@ namespace SoundboardRandomizer
         public MainWindow()
         {
             InitializeComponent();
+            mediaElement1.LoadedBehavior = MediaState.Manual;
         }
 
         private GlobalKeyboardHook gKeyboardHook = new GlobalKeyboardHook();
 
-        // 1 < gHistForget <= gMinFileHistCount - 2
-        private int gMinFileHistCount = 7;
-        private int gHistForget = 5;
+        // check for special functions
+        System.Windows.Forms.Keys stopHK;
+        System.Windows.Forms.Keys toggleMuteHK;
+
+        // 1 < gHistForgetNum < gMinFileHistCount - 2
+        private int gMinFileHistCount = 8;
+        private int gHistForgetNum = 5;
 
         private bool muted = false;
 
@@ -131,11 +136,11 @@ namespace SoundboardRandomizer
                 gKeyboardHook.HookedKeys.Add(playlistHotkey);
             }
 
-            System.Windows.Forms.Keys stopHK = (System.Windows.Forms.Keys)stopKey;
+            stopHK = (System.Windows.Forms.Keys)stopKey;
             if (stopHK != Keys.None)
                 gKeyboardHook.HookedKeys.Add(stopHK);
 
-            System.Windows.Forms.Keys toggleMuteHK = (System.Windows.Forms.Keys)muteToggleKey;
+            toggleMuteHK = (System.Windows.Forms.Keys)muteToggleKey;
             if (toggleMuteHK != Keys.None)
                 gKeyboardHook.HookedKeys.Add(toggleMuteHK);
 
@@ -145,10 +150,6 @@ namespace SoundboardRandomizer
         {
             // if this is true it blocks that key from use for everything else
             e.Handled = false;
-
-            // check for special functions
-            System.Windows.Forms.Keys stopHK = (System.Windows.Forms.Keys)stopKey;
-            System.Windows.Forms.Keys toggleMuteHK = (System.Windows.Forms.Keys)muteToggleKey;
 
             if (e.KeyCode == toggleMuteHK)
             {
@@ -162,54 +163,61 @@ namespace SoundboardRandomizer
                 return;
             }
 
-            for (int i = 0; i < mSoundboards.Count; ++i)
+            if (muted)
+                return;
+
+            int sbInd = 0;
+
+            for (; sbInd < mSoundboards.Count; ++sbInd)
             {
-                System.Windows.Forms.Keys playlistHotkey = (System.Windows.Forms.Keys)mSoundboards[i].hotkey;
-                if (e.KeyCode == playlistHotkey)
+                if (e.KeyCode == (System.Windows.Forms.Keys)mSoundboards[sbInd].hotkey)
+                    break;
+
+                // got to the end of the soundboards and couldn't find the
+                // the registered hotkey, we shouldn't hit this
+                if (sbInd == (mSoundboards.Count - 1))
+                    return;
+            }
+
+            int randomIdx = mSoundboards[sbInd].lastPlayedIdxList[0];
+
+            if (mSoundboards[sbInd].playlist.Count > 1)
+            {
+                Random r = new Random();
+
+                while (mSoundboards[sbInd].lastPlayedIdxList.Contains(randomIdx))
+                    randomIdx = r.Next(0, mSoundboards[sbInd].playlist.Count);
+
+                if (mSoundboards[sbInd].playlist.Count >= gMinFileHistCount)
                 {
-
-                    int randomIdx = mSoundboards[i].lastPlayedIdxList[0];
-
-                    if (mSoundboards[i].playlist.Count > 1)
+                    // leave 2 out to choose from next time so it's not cyclic
+                    if (mSoundboards[sbInd].lastPlayedIdxList.Count == (mSoundboards[sbInd].playlist.Count - gHistForgetNum))
                     {
-                        Random r = new Random();
-
-                        while (mSoundboards[i].lastPlayedIdxList.Contains(randomIdx))
-                            randomIdx = r.Next(0, mSoundboards[i].playlist.Count);
-
-                        if (mSoundboards[i].playlist.Count >= gMinFileHistCount)
-                        {
-                            // leave 2 out to choose from next time so it's not cyclic
-                            if (mSoundboards[i].lastPlayedIdxList.Count == (mSoundboards[i].playlist.Count - gHistForget))
-                            {
-                                List<int> tempList = new List<int>();
-                                tempList = mSoundboards[i].lastPlayedIdxList.GetRange(1, (mSoundboards[i].lastPlayedIdxList.Count - 1));
-                                mSoundboards[i].lastPlayedIdxList.Clear();
-                                mSoundboards[i].lastPlayedIdxList.AddRange(tempList);
-                            }
-
-                            mSoundboards[i].lastPlayedIdxList.Add(randomIdx);
-                        }
-                        else
-                            mSoundboards[i].lastPlayedIdxList[0] = randomIdx;
+                        List<int> tempList = new List<int>();
+                        tempList = mSoundboards[sbInd].lastPlayedIdxList.GetRange(1, (mSoundboards[sbInd].lastPlayedIdxList.Count - 1));
+                        mSoundboards[sbInd].lastPlayedIdxList.Clear();
+                        mSoundboards[sbInd].lastPlayedIdxList.AddRange(tempList);
                     }
 
-                    mediaElement1.LoadedBehavior = MediaState.Manual;
-                    mediaElement1.Source = new System.Uri(mSoundboards[i].playlist[randomIdx]);
-                    mediaElement1.Play();
-
-                    // I don't like this but it works
-                    SoundboardPlaylist newSoundboard = new SoundboardPlaylist
-                    {
-                        playlist = mSoundboards[i].playlist,
-                        hotkey = mSoundboards[i].hotkey,
-                        lastPlayedIdxList = mSoundboards[i].lastPlayedIdxList
-                    };
-
-                    mSoundboards[i] = newSoundboard;
-                    return;
+                    mSoundboards[sbInd].lastPlayedIdxList.Add(randomIdx);
                 }
+                else
+                    mSoundboards[sbInd].lastPlayedIdxList[0] = randomIdx;
             }
+
+            mediaElement1.Source = new System.Uri(mSoundboards[sbInd].playlist[randomIdx]);
+            mediaElement1.Play();
+
+            // I don't like this but it works
+            SoundboardPlaylist newSoundboard = new SoundboardPlaylist
+            {
+                playlist = mSoundboards[sbInd].playlist,
+                hotkey = mSoundboards[sbInd].hotkey,
+                lastPlayedIdxList = mSoundboards[sbInd].lastPlayedIdxList
+            };
+
+            mSoundboards[sbInd] = newSoundboard;
+            return;
         }
 
         private void ToggleMute()
