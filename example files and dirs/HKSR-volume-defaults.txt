@@ -1,0 +1,2 @@
+sbVolume=100
+duckVolume=30
