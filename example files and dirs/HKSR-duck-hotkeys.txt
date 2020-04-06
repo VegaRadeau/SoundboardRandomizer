@@ -1,0 +1,3 @@
+HKSR-9-Tab
+HKSR-90-Z
+HKSR-160-LShiftKey

@@ -45,7 +45,7 @@ namespace SoundboardRandomizer
         private int gHistForgetNum = 5;
 
         private bool muted = false;
-        private bool soundAlreadyRunning = false;
+        private bool soundRunning = false;
 
         private int stopKey = 0;
         private int muteToggleKey = 0;
@@ -58,6 +58,7 @@ namespace SoundboardRandomizer
         private int duckVolume = 40;
 
         private Dictionary<string, Nullable<Single>> duckingApps = new Dictionary<string, Nullable<Single>>();
+        private List<System.Windows.Forms.Keys> duckingKeys= new List<System.Windows.Forms.Keys>();
 
         public struct SoundboardPlaylist
         {
@@ -79,6 +80,7 @@ namespace SoundboardRandomizer
             LoadSpecialHotkeys();
             LoadDefaultVolumes();
             LoadVolumeDuckApps();
+            LoadVolumeDuckKeys();
 
             AddKeyHooks();
 
@@ -183,6 +185,29 @@ namespace SoundboardRandomizer
                     continue;
 
                 duckingApps.Add(line, 100f);
+            }
+        }
+
+        private void LoadVolumeDuckKeys()
+        {
+            string filePath = System.IO.Directory.GetCurrentDirectory() + "\\HKSR-duck-hotkeys.txt";
+
+            if (!System.IO.File.Exists(filePath))
+                return;
+
+            string line;
+
+            System.IO.StreamReader file = new System.IO.StreamReader(filePath);
+
+            while ((line = file.ReadLine()) != null)
+            {
+                if (line[0] == '#')
+                    continue;
+
+                string[] lineSplit = line.Split('-');
+
+                if ((lineSplit.Length == 3) && (lineSplit[0] == "HKSR"))
+                    duckingKeys.Add((System.Windows.Forms.Keys)Int32.Parse(lineSplit[1]));
             }
         }
 
@@ -298,7 +323,9 @@ namespace SoundboardRandomizer
 
             mediaElement1.Source = new System.Uri(mSoundboards[sbInd].playlist[randomIdx]);
 
-            DuckOtherAppsVolumes();
+            if (duckingKeys.Contains(e.KeyCode))
+                DuckOtherAppsVolumes();
+
             mediaElement1.Play();
             // there is a event handlers to RestoreOtherAppsVolumes, we don't use it to Duck 
             // since we can override sounds so they never finish, we just want to run the Duck once else we'll overide
@@ -342,10 +369,10 @@ namespace SoundboardRandomizer
 
         private void DuckOtherAppsVolumes()
         {
-            if (soundAlreadyRunning)
+            if (soundRunning)
                 return;
 
-            soundAlreadyRunning = true;
+            soundRunning = true;
 
             if (duckingApps.Count == 0)
                 return;
@@ -365,13 +392,16 @@ namespace SoundboardRandomizer
 
         private void RestoreOtherAppsVolumesEventHandler(object sender, RoutedEventArgs e)
         {
+            if (!soundRunning)
+                return;
+
             RestoreOtherAppsVolumes();
             // this is hacky, but we do this so we can have it on the event handler and also call it independently from StopMedia
         }
 
         private void RestoreOtherAppsVolumes()
         {
-            soundAlreadyRunning = false;
+            soundRunning = false;
 
             if (duckingApps.Count == 0)
                 return;

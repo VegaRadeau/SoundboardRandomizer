@@ -57,4 +57,16 @@ NOTE: I've comented out (#comment) chrome and firefox as they make a process for
 also commented out OBS studio (obs64) and Discord since I don't know if you wanted those on the duck list as well
 __________________________________________________________________________________________________________
 
+HKSR-duck-hotkeys.txt
+
+the hotkeys to duck the volume on the apps mentione above, if not specically written in here in the following format, it will not duck the volume for the apps mentioned above.
+NOTE: if you override a 'ducked' hotkey with a non-ducked hotkey, the volume on the ducked app won't come back up until the sound has recorded. 
+if it's vise versa and then the sound will still duck, as in play non-ducked and override it with a ducked before the first finishing playing, then the sound on the ducked apps will lower.
+
+HKSR-9-Tab
+HKSR-90-Z
+HKSR-160-LShiftKey
+
+the numbers can be found in keyenums.txt
+__________________________________________________________________________________________________________
 
